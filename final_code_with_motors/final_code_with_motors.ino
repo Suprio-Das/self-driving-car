@@ -1,18 +1,12 @@
-#include <Servo.h>
-
-// Servo pin for steering
-Servo steeringServo;
-const int servoPin = 3;
-
-// Motor Driver pins
-const int motorEnableA = 5; // Speed control for left motor
-const int motorEnableB = 6; // Speed control for right motor
+// Motor Driver Pins
+const int motorEnableA = 5; // Speed control for left motors
+const int motorEnableB = 6; // Speed control for right motors
 const int motorLeft1 = 10;  // IN1 for left motor direction
 const int motorLeft2 = 11;  // IN2 for left motor direction
 const int motorRight1 = 7;  // IN3 for right motor direction
 const int motorRight2 = 8;  // IN4 for right motor direction
 
-// Ultrasonic sensor pins
+// Ultrasonic Sensor Pins
 const int trigFront = 4;
 const int echoFront = 2;
 const int trigLeft = A0;
@@ -20,14 +14,14 @@ const int echoLeft = A1;
 const int trigRight = A2;
 const int echoRight = A3;
 
-// Buzzer pin
+// Buzzer Pin
 const int buzzer = 12;
 
 // Variables for distances
 long duration;
 int distanceFront, distanceLeft, distanceRight;
 
-// Function to calculate distance
+// Function to calculate distance from ultrasonic sensor
 int getDistance(int trigPin, int echoPin) {
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
@@ -39,7 +33,7 @@ int getDistance(int trigPin, int echoPin) {
 }
 
 void setup() {
-  // Set pin modes for ultrasonic sensors
+  // Set ultrasonic sensor pins
   pinMode(trigFront, OUTPUT);
   pinMode(echoFront, INPUT);
   pinMode(trigLeft, OUTPUT);
@@ -47,28 +41,26 @@ void setup() {
   pinMode(trigRight, OUTPUT);
   pinMode(echoRight, INPUT);
 
-  // Set pin modes for motor driver and buzzer
+  // Set motor driver pins
   pinMode(motorLeft1, OUTPUT);
   pinMode(motorLeft2, OUTPUT);
   pinMode(motorRight1, OUTPUT);
   pinMode(motorRight2, OUTPUT);
   pinMode(motorEnableA, OUTPUT);
   pinMode(motorEnableB, OUTPUT);
-  pinMode(buzzer, OUTPUT);
 
-  // Attach the servo motor
-  steeringServo.attach(servoPin);
-  steeringServo.write(90); // Center the servo
+  // Set buzzer pin
+  pinMode(buzzer, OUTPUT);
 
   Serial.begin(9600);
 
-  // Enable motors
-  analogWrite(motorEnableA, 255); // Full speed for left motor
-  analogWrite(motorEnableB, 255); // Full speed for right motor
+  // Enable motors at full speed
+  analogWrite(motorEnableA, 255);
+  analogWrite(motorEnableB, 255);
 }
 
 void loop() {
-  // Measure distances from ultrasonic sensors
+  // Measure distances
   distanceFront = getDistance(trigFront, echoFront);
   distanceLeft = getDistance(trigLeft, echoLeft);
   distanceRight = getDistance(trigRight, echoRight);
@@ -78,39 +70,35 @@ void loop() {
   Serial.print(" Left: "); Serial.print(distanceLeft);
   Serial.print(" Right: "); Serial.println(distanceRight);
 
-  // Buzzer logic: If all sides are blocked, stop and activate buzzer
+  // Collision detection
   if (distanceFront < 20 && distanceLeft < 20 && distanceRight < 20) {
-    Serial.println("All sides blocked - Buzzer ON");
-    digitalWrite(buzzer, HIGH);
+    Serial.println("All sides blocked. Stopping!");
     stopMotors();
+    digitalWrite(buzzer, HIGH);
     return;
   } else {
     digitalWrite(buzzer, LOW);
   }
 
-  // Obstacle avoidance logic
-  if (distanceFront < 20) { // Obstacle in front
-    slowMotors();
+  // Obstacle avoidance
+  if (distanceFront < 20) {
     if (distanceLeft > distanceRight) {
-      Serial.println("Front Blocked - Turning Left");
-      steeringServo.write(45); // Turn left
+      Serial.println("Obstacle ahead. Turning left.");
+      turnLeft();
     } else {
-      Serial.println("Front Blocked - Turning Right");
-      steeringServo.write(135); // Turn right
+      Serial.println("Obstacle ahead. Turning right.");
+      turnRight();
     }
-    delay(500); // Allow the turn to complete
-    moveForward(); // Resume normal speed
+    delay(500); // Allow the car to complete the turn
   } else {
-    // No obstacle in front, move forward
-    Serial.println("Path Clear - Moving Forward");
+    Serial.println("Path clear. Moving forward.");
     moveForward();
-    steeringServo.write(90); // Center the servo
   }
 
   delay(100); // Delay for stability
 }
 
-// Function to stop the motors
+// Function to stop motors
 void stopMotors() {
   digitalWrite(motorLeft1, LOW);
   digitalWrite(motorLeft2, LOW);
@@ -118,18 +106,26 @@ void stopMotors() {
   digitalWrite(motorRight2, LOW);
 }
 
-// Function to slow down the motors
-void slowMotors() {
-  analogWrite(motorEnableA, 150); // Reduce speed for left motor
-  analogWrite(motorEnableB, 150); // Reduce speed for right motor
-}
-
-// Function to move forward at normal speed
+// Function to move forward
 void moveForward() {
-  analogWrite(motorEnableA, 255); // Full speed for left motor
-  analogWrite(motorEnableB, 255); // Full speed for right motor
   digitalWrite(motorLeft1, HIGH);
   digitalWrite(motorLeft2, LOW);
   digitalWrite(motorRight1, HIGH);
   digitalWrite(motorRight2, LOW);
+}
+
+// Function to turn left
+void turnLeft() {
+  digitalWrite(motorLeft1, LOW);
+  digitalWrite(motorLeft2, HIGH);
+  digitalWrite(motorRight1, HIGH);
+  digitalWrite(motorRight2, LOW);
+}
+
+// Function to turn right
+void turnRight() {
+  digitalWrite(motorLeft1, HIGH);
+  digitalWrite(motorLeft2, LOW);
+  digitalWrite(motorRight1, LOW);
+  digitalWrite(motorRight2, HIGH);
 }
